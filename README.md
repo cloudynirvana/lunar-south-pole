@@ -11,6 +11,9 @@ to the ice?**
 This answers it from NASA's own measurements rather than from a map someone
 else drew.
 
+There is also a short narrated film of the result:
+[`video/lunar_south_pole.mp4`](video/lunar_south_pole.mp4).
+
 ## What it does
 
 It reads the LOLA elevation map of the south pole (40 m per pixel, real laser

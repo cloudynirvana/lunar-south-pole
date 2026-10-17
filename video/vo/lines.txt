@@ -1,0 +1,9 @@
+NASA is going back to the Moon's south pole. And everybody wants the same few square kilometres. This is a map of why.
+At the pole, the Sun never climbs more than a degree and a half above the horizon. So a ridge a hundred kilometres away can put you in the dark. I traced the skyline in sixty directions from every patch of ground, including the curve of the Moon itself, which drops the surface almost three kilometres over that distance.
+Then I stepped the Sun through a whole year, one hour at a time, across forty five thousand square kilometres around the pole. This is what came out. Bright is sunlit. Black is never.
+Sixteen per cent of that ground, seven thousand two hundred square kilometres, never sees the Sun at all. An area the size of Puerto Rico, in permanent darkness. That is where water ice can survive.
+And here is the problem. Only three point seven square kilometres is lit more than seventy per cent of the year. Less than half a square kilometre clears eighty. The best single patch on the whole map manages ninety one point six.
+That is roughly two thousand to one, shadow to sunlight. A mission does not have to go looking for ice. It has to go looking for somewhere to park.
+These are the twelve best sites I could find. Six of them sit on the rim of one crater, the one centred almost exactly on the pole. It is the high ground, so it catches light the floor a kilometre below never sees, and the ice is a short drive away.
+One catch. From the south pole, Earth sits down on the horizon. Not one of the twelve sees it more than sixty one per cent of the time. Whichever site you pick, you are buying a relay satellite with it.
+All of this came from NASA's LOLA elevation map, forty metres per pixel, and the code to rebuild it is on GitHub.

@@ -1,0 +1,5 @@
+node_modules/
+voice/
+public/soundtrack.wav
+vo/*.wav
+stills/
