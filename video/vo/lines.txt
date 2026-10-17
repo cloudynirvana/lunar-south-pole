@@ -4,6 +4,6 @@ Then I stepped the Sun through a whole year, one hour at a time, across forty fi
 Sixteen per cent of that ground, seven thousand two hundred square kilometres, never sees the Sun at all. An area the size of Puerto Rico, in permanent darkness. That is where water ice can survive.
 And here is the problem. Only three point seven square kilometres is lit more than seventy per cent of the year. Less than half a square kilometre clears eighty. The best single patch on the whole map manages ninety one point six.
 That is roughly two thousand to one, shadow to sunlight. A mission does not have to go looking for ice. It has to go looking for somewhere to park.
-These are the twelve best sites I could find. Six of them sit on the rim of one crater, the one centred almost exactly on the pole. It is the high ground, so it catches light the floor a kilometre below never sees, and the ice is a short drive away.
+These are the twelve best sites I could find. What they have in common is height. Every one stands between seven hundred metres and one point eight kilometres above the ground around it. Six of the twelve are within twenty five kilometres of the pole, with the ice a short drive below.
 One catch. From the south pole, Earth sits down on the horizon. Not one of the twelve sees it more than sixty one per cent of the time. Whichever site you pick, you are buying a relay satellite with it.
 All of this came from NASA's LOLA elevation map, forty metres per pixel, and the code to rebuild it is on GitHub.

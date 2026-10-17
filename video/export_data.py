@@ -80,9 +80,15 @@ def main() -> None:
              "lit": round(float(s.sunlit_fraction_of_year) * 100),
              "earth": round(float(s.earth_in_view_fraction) * 100),
              "slope": float(s.slope_deg), "ice_km": float(s.km_to_permanent_shadow),
+             "relief_m": int(s.metres_above_surroundings),
+             "from_pole_km": round(float(rk), 1),
              "x_km": float(s.x_km), "y_km": float(s.y_km)}
-            for s in sites.itertuples()
+            for s, rk in zip(sites.itertuples(), r)
         ],
+        "relief_min_m": int(sites.metres_above_surroundings.min()),
+        "relief_max_m": int(sites.metres_above_surroundings.max()),
+        "near_pole_km": 25,
+        "near_pole_count": int((r <= 25).sum()),
         # how much of the mapped ground is lit, as a curve
         "curve": [{"pct": int(c), "km2": round(float(np.nansum(lit > c / 100) * area), 1)}
                   for c in range(0, 100, 5)],

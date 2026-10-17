@@ -14,9 +14,9 @@ Within 120 km of the south pole there are **45,242 km² of ground**, and of that
   clears 80%. The best single patch on the whole map manages 91.6%.
 
 That contrast is the whole problem in one line. The ice is abundant; the
-sunlight is not. The places that have both are a handful of ridge crests, each
-smaller than a city block, perched on crater rims within a few kilometres of
-permanent shadow.
+sunlight is not. The places that have both are a handful of high points, each
+smaller than a city block, standing a kilometre or so above the ground around
+them and a few kilometres from permanent shadow.
 
 *Chart: `results/sunlight.png`*
 
@@ -25,37 +25,46 @@ permanent shadow.
 Ranked by sunlight, nearness to permanent shadow, flat ground and a view of
 Earth. Longitudes are east.
 
-| Rank | Latitude | Longitude | Sunlit | Earth in view | Slope | Shadow nearby |
-|---|---|---|---|---|---|---|
-| 1 | −89.78 | 204.3 | 92% | 58% | 2.5° | 2.6 km |
-| 2 | −88.81 | 123.6 | 91% | 58% | 0.5° | 4.6 km |
-| 3 | −89.31 | 245.9 | 81% | 61% | 1.3° | 1.7 km |
-| 4 | −89.80 | 54.7 | 81% | 58% | 1.9° | 2.4 km |
-| 5 | −88.59 | 292.2 | 80% | 61% | 2.4° | 3.8 km |
-| 6 | −89.01 | 265.2 | 79% | 56% | 1.9° | 4.8 km |
-| 7 | −89.49 | 221.2 | 78% | 53% | 3.1° | 4.1 km |
-| 8 | −86.37 | 336.7 | 72% | 61% | 3.4° | 1.2 km |
-| 9 | −86.95 | 335.9 | 71% | 58% | 1.9° | 1.2 km |
-| 10 | −89.38 | 104.5 | 70% | 61% | 3.1° | 1.4 km |
-| 11 | −87.98 | 193.7 | 72% | 44% | 0.9° | 1.7 km |
-| 12 | −89.30 | 123.4 | 71% | 53% | 5.3° | 1.6 km |
+| Rank | Latitude | Longitude | Sunlit | Earth in view | Slope | Shadow nearby | Above surroundings |
+|---|---|---|---|---|---|---|---|
+| 1 | -89.78 | 204.3 | 92% | 58% | 2.5° | 2.6 km | 1,378 m |
+| 2 | -88.81 | 123.6 | 91% | 58% | 0.5° | 4.6 km | 1,066 m |
+| 3 | -89.31 | 245.9 | 81% | 61% | 1.3° | 1.7 km | 1,128 m |
+| 4 | -89.80 | 54.7 | 81% | 58% | 1.9° | 2.4 km | 1,613 m |
+| 5 | -88.58 | 292.2 | 80% | 61% | 2.4° | 3.8 km | 1,322 m |
+| 6 | -89.01 | 265.2 | 79% | 56% | 1.9° | 4.8 km | 1,272 m |
+| 7 | -89.49 | 221.2 | 78% | 53% | 3.1° | 4.1 km | 964 m |
+| 8 | -86.37 | 336.7 | 72% | 61% | 3.4° | 1.2 km | 1,394 m |
+| 9 | -86.95 | 335.9 | 71% | 58% | 1.9° | 1.2 km | 748 m |
+| 10 | -89.38 | 104.5 | 70% | 61% | 3.1° | 1.4 km | 1,341 m |
+| 11 | -87.98 | 193.7 | 72% | 44% | 0.9° | 1.7 km | 1,836 m |
+| 12 | -89.30 | 123.4 | 70% | 53% | 5.3° | 1.6 km | 1,136 m |
 
 Full table with scores: `results/sites.csv`.
 
-Sites 1, 3, 4, 7, 10 and 12 all sit on the rim of the large crater centred
-almost exactly on the pole, which the map shows as the dark disc at the middle
-of `results/sunlight.png`. That ring of rim is the single most valuable
-real estate in the study area: it is the high ground, so it catches light that
-never reaches the floor a kilometre below, and the permanently shadowed floor
-is a short drive away.
+What the twelve have in common is height. Every one of them stands between
+**0.7 and 1.8 km above the average height of the ground within 20 km of it**.
+None of them is on a plain. Sunlight this close to the pole is something you
+have to stand on top of.
+
+Six of the twelve — sites 1, 3, 4, 7, 10 and 12 — lie within 25 km of the pole,
+on the high ground between the shadowed basins there. That band is the most
+valuable real estate in the study area, because it is the only place where
+near-constant sunlight and permanent shadow are a few kilometres apart: those
+six sites are 1.4 to 4.1 km from ground that never sees the Sun.
+
+This project does not name the craters. It works from the elevation map alone,
+and the gazetteer it would need to attach names to features was not available
+offline, so sites are identified by coordinates.
 
 ## Three things the numbers say
 
 **Sunlight is a ridge-top resource.** Flat ground at the pole gets sunlight
 about half the year, because the Sun spends half the year on the northern side
 of the lunar equator and simply never rises. Getting above 70% means standing
-on something high enough to see over the local terrain — which is why the good
-sites are crater rims and ridge crests, not plains.
+on something high enough to see over the local terrain. That is measurable:
+every one of the top twelve stands between 748 m and 1,836 m above the mean
+height of the ground within 20 km of it. Not one of them is on a plain.
 
 **Permanent shadow is everywhere and sunlight is rare.** The ratio is roughly
 2,000 to 1 by area. A mission does not have to search for ice; it has to search

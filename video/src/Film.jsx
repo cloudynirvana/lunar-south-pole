@@ -253,8 +253,10 @@ const Sites = ({d}) => {
     <MapImage src="sunlight.png" opacity={0.95} />
     <svg width="1920" height="1080" style={{position: 'absolute'}}>
       <Pole label={false} /><Scale />
-      <circle cx={sx(0)} cy={sy(0)} r={kmToPx(10)} fill="none" stroke={C.ice} strokeWidth="2"
-        strokeDasharray="6 8" opacity={rim * 0.9} />
+      <circle cx={sx(0)} cy={sy(0)} r={kmToPx(data.near_pole_km)} fill="none" stroke={C.ice}
+        strokeWidth="2" strokeDasharray="6 8" opacity={rim * 0.9} />
+      <text x={sx(0)} y={sy(0) - kmToPx(data.near_pole_km) - 12} fill={C.ice} fontSize="20"
+        fontFamily={font} textAnchor="middle" opacity={rim}>{data.near_pole_km} km from the pole</text>
       {data.sites.slice(0, shown).map((s, i) =>
         <g key={i}>
           <circle cx={sx(s.x_km)} cy={sy(s.y_km)} r="9" fill="none" stroke={C.moss} strokeWidth="2" />
@@ -273,11 +275,14 @@ const Sites = ({d}) => {
         <div style={{height: 8}} />
         <Sub size={30} color={C.ink}>{best.lat}° · {best.lon}° E</Sub>
         <Sub size={30} color={C.ink}>{best.lit}% sunlit · {best.slope}° slope · {best.ice_km} km to shadow</Sub>
+        <Sub size={30} color={C.ink}>{best.relief_m} m above the ground around it</Sub>
       </div>
       <div style={{height: 36}} />
       <div style={{opacity: rim}}>
-        <Sub size={28} color={C.ice}>Six of the twelve sit on the rim of the one crater
-          centred on the pole: high ground, with the ice a short drive below.</Sub>
+        <Sub size={28} color={C.ice}>Every one of the twelve stands {(data.relief_min_m / 1000).toFixed(1)} to
+          {' '}{(data.relief_max_m / 1000).toFixed(1)} km above the ground around it.
+          {' '}{data.near_pole_count} are within {data.near_pole_km} km of the pole, with permanent
+          shadow a few kilometres away.</Sub>
       </div>
     </div>
   </AbsoluteFill>;

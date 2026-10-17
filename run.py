@@ -37,7 +37,17 @@ DRIVE_KM = 20.0  # how far a rover might reasonably go for ice
 OUT = Path(__file__).parent / "results"
 
 
-def ranked_sites(lit, earth, slope, ice_km, lat, lon, n=12, apart_km=5.0):
+def relief_m(h, res, radius_km=20.0):
+    """How far each patch stands above the average height around it.
+
+    The reason the good sites are where they are: sunlight this close to the
+    pole goes to whatever is standing highest, because the Sun never climbs far
+    enough to clear the local terrain. This measures that directly.
+    """
+    return h - ndimage.uniform_filter(h, size=int(radius_km * 1000 / res))
+
+
+def ranked_sites(lit, earth, slope, ice_km, relief, lat, lon, n=12, apart_km=5.0):
     """The best-scoring pixels, thinned so two sites are never neighbours."""
     ok = (slope < MAX_SLOPE) & (lit > 0.5) & (ice_km < DRIVE_KM) & np.isfinite(lit)
     score = np.where(ok, np.nan_to_num(lit) * (1 - ice_km / DRIVE_KM / 4) * (0.8 + 0.2 * np.nan_to_num(earth)), 0)
@@ -53,6 +63,7 @@ def ranked_sites(lit, earth, slope, ice_km, lat, lon, n=12, apart_km=5.0):
         "earth_in_view_fraction": earth[rows, cols].round(3),
         "slope_deg": slope[rows, cols].round(1),
         "km_to_permanent_shadow": ice_km[rows, cols].round(1),
+        "metres_above_surroundings": relief[rows, cols].round(0),
         "score": score[rows, cols].round(3),
     })
 
@@ -98,6 +109,7 @@ if __name__ == "__main__":
     del hor
 
     slope = lola.slope_deg(h, res)
+    relief = relief_m(h, res)
     shadow = lit == 0
     ice_km = ndimage.distance_transform_edt(~shadow, sampling=res) / 1000
 
@@ -105,13 +117,13 @@ if __name__ == "__main__":
     # would depend on terrain beyond the edge of the map, which we do not have.
     edge = int((len(h) * RES_M / 2 - STUDY_KM * 1000) / RES_M)
     crop = (slice(edge, -edge), slice(edge, -edge))
-    lit, earth, slope, shadow, ice_km = (a[crop] for a in (lit, earth, slope, shadow, ice_km))
+    lit, earth, slope, shadow, ice_km, relief = (a[crop] for a in (lit, earth, slope, shadow, ice_km, relief))
     lat_c, lon_c, h_c = lat[crop], lon[crop], h[crop]
     inside = np.hypot(*np.meshgrid(*[(np.arange(len(h_c)) - (len(h_c) - 1) / 2) * RES_M] * 2)) <= STUDY_KM * 1000
     lit, earth, slope = (np.where(inside, a, np.nan) for a in (lit, earth, slope))
     shadow &= inside
 
-    sites = ranked_sites(lit, earth, slope, ice_km, lat_c, lon_c)
+    sites = ranked_sites(lit, earth, slope, ice_km, relief, lat_c, lon_c)
     sites.index = np.arange(1, len(sites) + 1)
     sites.to_csv(OUT / "sites.csv", index_label="rank")
     np.save(OUT / "lit_fraction.npy", lit)
@@ -123,6 +135,12 @@ if __name__ == "__main__":
     for cut in (0.7, 0.8, 0.9):
         print(f"lit more than {cut:.0%} of the year: {np.nansum(lit > cut) * area:,.1f} km2")
     print(f"best single patch: {np.nanmax(lit) * 100:.1f}% of the year in sunlight")
+    r = sites.metres_above_surroundings
+    print(f"every one of the top {len(sites)} stands {r.min():,.0f} to {r.max():,.0f} m "
+          f"above the mean height within 20 km of it")
+    from_pole = 2 * lola.R_MOON * np.tan(np.radians(90 + sites.latitude) / 2) / 1000
+    print(f"{(from_pole <= 25).sum()} of them are within 25 km of the pole "
+          f"(they range {from_pole.min():.0f} to {from_pole.max():.0f} km out)")
     print(f"\n{sites.to_string()}")
 
     map_chart(lit, "Sunlight at the lunar south pole (LOLA 40 m terrain, one year)",
