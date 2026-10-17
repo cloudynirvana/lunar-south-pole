@@ -22,7 +22,7 @@ ground in the 300 km square around the pole:
 
 | | |
 |---|---|
-| **Sunlight** | what fraction of a year the Sun is above that patch's own horizon |
+| **Sunlight** | what fraction of the Sun's disc that patch can see, averaged over the 18.6-year cycle |
 | **Permanent shadow** | whether the Sun never reaches it, so water ice can survive |
 | **Ground** | the local slope, which decides whether a lander can set down |
 | **Earth** | whether Earth is ever in view, which decides if you can talk home directly |
@@ -34,10 +34,19 @@ Then it ranks the places that do well on all four at once.
 Near the pole the Sun never climbs more than about 1.5 degrees above the
 horizon. At that angle a ridge 50 km away can cast a shadow that never moves.
 So the calculation has to trace, from every patch of ground, the skyline in
-every direction out to 100 km — and include the Moon's curvature, because over
-100 km the surface drops 2.9 km below the local horizontal, which is more than
-most of the relief here. That horizon is then compared against the Sun's
+every direction out to 150 km, which is as far as the map reaches — and include
+the Moon's curvature, because over that distance the surface drops 6.5 km below
+the local horizontal, far more than any of the local relief. That horizon is then compared against the Sun's
 position hour by hour for a year.
+
+And the Sun has to be a disc, not a point. It is half a degree wide and never
+climbs more than one and a half, so a patch near the pole spends a long time
+with the Sun half risen. Treating it as a point calls all of that darkness,
+which is wrong in one direction only: it always reports too little sunlight.
+`illumination.disc_levels` cuts the disc into seven equal-area slices, and a
+patch scores the fraction of the disc it can see. The first pass of this project
+got this wrong; `results/validation.md` measures what it cost, which turned out
+to be a tenth of the permanent shadow and almost none of the sunlight.
 
 ## Running it
 
@@ -45,11 +54,32 @@ position hour by hour for a year.
 ./fetch_data.sh     # 115 MB from NASA's Planetary Data System
 pip install numpy scipy matplotlib pandas
 python3 run.py      # about ten minutes
+python3 validate.py # about fifteen; the convergence study
 pytest              # the geometry checks, no download needed
 ```
 
-Outputs land in `results/`: `sites.csv` with the ranked sites, and maps of
-sunlight, permanent shadow and terrain.
+Outputs land in `results/`: `sites.csv` with the ranked sites, maps of
+sunlight, permanent shadow and terrain, and `validation.md`.
+
+## Is the answer about the Moon, or about the settings?
+
+There are six knobs in the model: how coarsely the terrain is averaged, how many
+compass directions the horizon is traced in, how far out, how long a stretch of
+the Sun's motion is sampled, how finely, and how many slices the Sun's disc is
+cut into. A result that moves when you turn a knob is a result about the knob.
+
+Four of them turn out not to matter. Two do: how far the horizon is traced, and
+above all how coarsely the terrain is averaged. Illumination at this latitude is
+set by terrain at the metre scale — at half a degree of solar elevation, a 2 m
+bump 200 m away blocks the Sun — and a 40 m gridded product cannot resolve the
+metre scale. **So every sunlit area in this project is an upper bound rather
+than an estimate**, and the resolution ladder in the validation study is the
+width of the honest uncertainty.
+
+`validate.py` turns each one on its own and prints what the headline numbers do,
+then sets them beside three published figures for the same ground. The output is
+[`results/validation.md`](results/validation.md), and the short version is in
+[`RESULTS.md`](RESULTS.md#does-this-survive-its-own-settings).
 
 ## Data
 
@@ -60,11 +90,15 @@ sunlight, permanent shadow and terrain.
 
 ## What this is and is not
 
-It is a first-pass siting study built from real terrain. It is not a landing
-site recommendation. Specifically:
+It is a siting study built from real terrain, and a lower bound rather than a
+replication of the published illumination maps — the comparison, and why we come
+out low, is in [`RESULTS.md`](RESULTS.md#against-published-work). It is not a
+landing site recommendation. Specifically:
 
-- **The Sun is treated as a point**, so the few hundred metres of partial
-  shadow around every edge are counted as dark. Real twilight is softer.
+- **The terrain is averaged to 240 m**, the grid the published illumination maps
+  also use, and that is the setting the answer really depends on. Redoing a
+  40 km box at 120, 80 and 40 m finds less sunlight every time, so these areas
+  are upper bounds. See `results/validation.md`.
 - **Sunlight is geometric only.** No scattered light, no thermal modelling. A
   crater floor that is never directly lit can still be warmed by light bouncing
   off its own walls, which is one of the things that decides whether ice
@@ -76,8 +110,8 @@ site recommendation. Specifically:
   projection (zero longitude up the map, longitude increasing east). Sunlight
   results do not depend on that, because the Sun sweeps every direction each
   month, but the Earth-link numbers would mirror if the convention were flipped.
-- **The terrain is averaged to 240 m** for the horizon tracing. Boulders and
-  small craters that matter to an actual lander are invisible at that scale.
+- **Boulders and small craters are invisible** at 240 m, and they matter to an
+  actual lander.
 
 ## What I would do differently
 

@@ -13,6 +13,12 @@ picks the pixels that do best on all of them.
     ./fetch_data.sh && python3 run.py
 
 Writes results/sites.csv and three charts. Takes about ten minutes.
+
+How much of this answer is really about the Moon and how much is about the
+settings at the top of this file is a fair question, and `validate.py` answers
+it by turning each one on its own: see results/validation.md. The short version
+is that the terrain resolution matters more than everything else together, and
+it biases every sunlit area here upwards, so read them as upper bounds.
 """
 from __future__ import annotations
 
@@ -28,9 +34,10 @@ from scipy import ndimage
 import illumination as il
 import lola
 
-RES_M = 240.0  # the 40 m map averaged 6x6; fine enough for 100 km horizons
+RES_M = 240.0  # the 40 m map averaged 6x6, the grid the published maps use too
 DOWNSAMPLE = 6
-HORIZON_KM = 100.0  # how far away terrain can still block the Sun
+AZIMUTHS = 60  # compass directions the horizon is traced in
+HORIZON_KM = 150.0  # how far away terrain can still block the Sun; the map's limit
 STUDY_KM = 120.0  # how far from the pole to report; the map itself stops at 151 km
 MAX_SLOPE = 10.0  # degrees; steeper than a lander should touch down on
 DRIVE_KM = 20.0  # how far a rover might reasonably go for ice
@@ -59,7 +66,7 @@ def ranked_sites(lit, earth, slope, ice_km, relief, lat, lon, n=12, apart_km=5.0
     return pd.DataFrame({
         "latitude": lat[rows, cols].round(3),
         "east_longitude": lon[rows, cols].round(2),
-        "sunlit_fraction_of_year": lit[rows, cols].round(3),
+        "sunlit_fraction": lit[rows, cols].round(3),
         "earth_in_view_fraction": earth[rows, cols].round(3),
         "slope_deg": slope[rows, cols].round(1),
         "km_to_permanent_shadow": ice_km[rows, cols].round(1),
@@ -100,10 +107,10 @@ if __name__ == "__main__":
     assert res == RES_M
     lat, lon = lola.grid(len(h), res)
 
-    print(f"horizons in 60 directions out to {HORIZON_KM:.0f} km...", flush=True)
-    hor = il.horizon(h, res, n_azimuth=60, max_km=HORIZON_KM)
+    print(f"horizons in {AZIMUTHS} directions out to {HORIZON_KM:.0f} km...", flush=True)
+    hor = il.horizon(h, res, n_azimuth=AZIMUTHS, max_km=HORIZON_KM)
 
-    print("sunlight over a year...", flush=True)
+    print(f"sunlight over {il.NODAL_CYCLE / 365.25:.1f} years...", flush=True)
     lit = il.lit_fraction(hor, lat, lon)
     earth = il.earth_fraction(hor, lat, lon)
     del hor
@@ -133,8 +140,8 @@ if __name__ == "__main__":
     print(f"permanently shadowed: {shadow.sum() * area:,.0f} km2 "
           f"({100 * shadow.sum() / inside.sum():.1f}% of it)")
     for cut in (0.7, 0.8, 0.9):
-        print(f"lit more than {cut:.0%} of the year: {np.nansum(lit > cut) * area:,.1f} km2")
-    print(f"best single patch: {np.nanmax(lit) * 100:.1f}% of the year in sunlight")
+        print(f"lit more than {cut:.0%} of the time: {np.nansum(lit > cut) * area:,.1f} km2")
+    print(f"best single patch: {np.nanmax(lit) * 100:.1f}% of the time in sunlight")
     r = sites.metres_above_surroundings
     print(f"every one of the top {len(sites)} stands {r.min():,.0f} to {r.max():,.0f} m "
           f"above the mean height within 20 km of it")
@@ -143,8 +150,8 @@ if __name__ == "__main__":
           f"(they range {from_pole.min():.0f} to {from_pole.max():.0f} km out)")
     print(f"\n{sites.to_string()}")
 
-    map_chart(lit, "Sunlight at the lunar south pole (LOLA 40 m terrain, one year)",
-              "fraction of the year in sunlight", OUT / "sunlight.png", sites, vmax=1)
+    map_chart(lit, "Sunlight at the lunar south pole (LOLA terrain, an 18.6-year cycle)",
+              "fraction of the time in sunlight", OUT / "sunlight.png", sites, vmax=1)
     map_chart(np.where(shadow, 1.0, np.nan), "Permanently shadowed ground: where ice can survive",
               "never sunlit", OUT / "permanent_shadow.png", sites, cmap="Blues", vmax=1)
     map_chart(h_c / 1000, "Terrain", "km above a 1737.4 km sphere",

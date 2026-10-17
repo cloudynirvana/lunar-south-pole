@@ -22,11 +22,11 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+import illumination as il  # noqa: E402
 import lola  # noqa: E402
+from run import AZIMUTHS, HORIZON_KM, RES_M, STUDY_KM  # noqa: E402
 
 OUT = Path(__file__).parent / "public"
-RES_M = 240.0
-STUDY_KM = 120.0
 
 
 def save(field, cmap, path, vmin=0.0, vmax=1.0):
@@ -64,6 +64,14 @@ def main() -> None:
 
     data = {
         "study_km": STUDY_KM,
+        "res_m": RES_M,
+        "azimuths": AZIMUTHS,
+        "horizon_km": HORIZON_KM,
+        # the Moon's surface falls this far below the local horizontal over the
+        # distance the horizon is traced, which is the point of the scene
+        "curvature_km": round((HORIZON_KM * 1000) ** 2 / (2 * lola.R_MOON) / 1000, 1),
+        "cycle_years": round(il.NODAL_CYCLE / 365.25, 1),
+        "hours_computed": int(il.NODAL_CYCLE * 24),
         "image_half_km": n * RES_M / 2000,
         "mapped_km2": round(float(inside.sum() * area)),
         "shadow_km2": round(float(shadow.sum() * area)),
@@ -77,7 +85,7 @@ def main() -> None:
         "earth_max_pct": round(float(sites.earth_in_view_fraction.max()) * 100),
         "sites": [
             {"rank": int(s.rank), "lat": float(s.latitude), "lon": float(s.east_longitude),
-             "lit": round(float(s.sunlit_fraction_of_year) * 100),
+             "lit": round(float(s.sunlit_fraction) * 100),
              "earth": round(float(s.earth_in_view_fraction) * 100),
              "slope": float(s.slope_deg), "ice_km": float(s.km_to_permanent_shadow),
              "relief_m": int(s.metres_above_surroundings),
@@ -93,6 +101,17 @@ def main() -> None:
         "curve": [{"pct": int(c), "km2": round(float(np.nansum(lit > c / 100) * area), 1)}
                   for c in range(0, 100, 5)],
     }
+    # the convergence study, if it has been run: the film's last scene is the
+    # resolution ladder out of it, so it is read rather than typed
+    val = ROOT / "results" / "validation.json"
+    if val.exists():
+        v = json.loads(val.read_text())
+        data["resolution"] = [
+            {"grid": row["setting"], "best": row["best"], "mean": row["mean"],
+             "over_70": row["over_70"]}
+            for row in v["knobs"].get("terrain grid", [])
+        ]
+        data["box_km"] = v["baseline"]["box_km"]
     (OUT / "data.json").write_text(json.dumps(data, indent=1))
     print(f"{data['mapped_km2']:,} km2 mapped, {data['shadow_km2']:,} km2 shadowed, "
           f"best patch {data['best_lit_pct']}% -> {OUT}")

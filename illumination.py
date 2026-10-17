@@ -35,7 +35,7 @@ SOLAR_RADIUS_DEG = 0.26  # the Sun is a disc, not a point
 
 
 def horizon(h: np.ndarray, res: float, n_azimuth: int = 60, max_km: float = 100.0,
-            n_steps: int = 60) -> np.ndarray:
+            n_steps: int = 60, window: tuple[slice, slice] | None = None) -> np.ndarray:
     """Highest terrain elevation angle per pixel per compass direction.
 
     Returns (n_azimuth, rows, cols); bin i is the direction i * 360/n_azimuth
@@ -46,11 +46,19 @@ def horizon(h: np.ndarray, res: float, n_azimuth: int = 60, max_km: float = 100.
     it had, so the edge is treated as flat continuation rather than wrapping
     round to terrain on the opposite side of the pole. Horizons within max_km
     of the edge are therefore only as good as the map is wide.
+
+    `window` restricts the pixels we compute horizons *for*, while still
+    ray-tracing into the whole of `h`. That is what makes a fine-resolution
+    convergence check affordable: the full map at 120 m would need gigabytes of
+    horizon array, but a 30 km box out of it costs almost nothing.
     """
     max_px = int(max_km * 1000 / res)
     steps = np.unique(np.round(np.geomspace(1, max_px, n_steps)).astype(int))
-    rows, cols = np.arange(h.shape[0]), np.arange(h.shape[1])
-    out = np.full((n_azimuth, *h.shape), -np.pi / 2, np.float32)
+    rs, cs = window if window is not None else (slice(None), slice(None))
+    rows = np.arange(h.shape[0])[rs]
+    cols = np.arange(h.shape[1])[cs]
+    here = h[rs, cs]
+    out = np.full((n_azimuth, *here.shape), -np.pi / 2, np.float32)
     for i in range(n_azimuth):
         az = 2 * np.pi * i / n_azimuth
         best = out[i]
@@ -62,16 +70,28 @@ def horizon(h: np.ndarray, res: float, n_azimuth: int = 60, max_km: float = 100.
             # terrain dx pixels right and dy pixels up (rows run down the image)
             far = h[np.clip(rows - dy, 0, h.shape[0] - 1)][:, np.clip(cols + dx, 0, h.shape[1] - 1)]
             drop = dist * dist / (2 * R_MOON)  # the Moon curving away underneath
-            np.maximum(best, np.arctan((far - h - drop) / dist), out=best)
+            np.maximum(best, np.arctan((far - here - drop) / dist), out=best)
     return out
 
 
-def sun_track(days: float = YEAR, step_hours: float = 1.0) -> tuple[np.ndarray, np.ndarray]:
+NODAL_CYCLE = 6793.48  # days; the 18.6-year wobble of the Moon's orbit plane
+
+
+def sun_track(days: float = NODAL_CYCLE, step_hours: float = 1.0) -> tuple[np.ndarray, np.ndarray]:
     """Solar elevation as seen from the pole itself, and solar azimuth, over time.
 
     The Sun's declination swings +/-1.54 degrees over a year while its azimuth
     goes right round the sky every synodic month. At the south pole the Sun is
     above the horizon exactly when its declination is southern.
+
+    The default run is 18.6 years, not one, and that is not thoroughness for
+    its own sake. A year holds only 12.37 synodic months, so each compass
+    direction is visited about twelve times, and the Sun's declination takes
+    only about two dozen distinct values while it is in any one direction. A
+    lit fraction built from that is quantised in steps of several per cent.
+    Over the 18.6-year nodal cycle each direction is visited 230 times, the
+    declination fills in, and it is the window the published illumination maps
+    use, which makes the comparison a fair one.
     """
     t = np.arange(0, days, step_hours / 24)
     dec = np.radians(SOLAR_INCLINATION) * np.sin(2 * np.pi * t / YEAR)
@@ -87,21 +107,56 @@ def local_offset(lat: np.ndarray, lon: np.ndarray, azimuth: float) -> np.ndarray
     return np.radians(90 + lat) * np.cos(azimuth - np.radians(lon))
 
 
+def disc_levels(n: int = 7) -> np.ndarray:
+    """Heights that split the Sun's disc into `n` equal-area horizontal slices.
+
+    The Sun is half a degree across, which is not nothing when it never rises
+    more than three. Treating it as a point counts every partially lit pixel as
+    dark, and near the pole almost every lit pixel spends a long time partly
+    lit, so the error is one-sided and large.
+
+    The fix is quadrature. The fraction of the disc above a horizon `d` radians
+    below its centre is P(d > s*v) for a point v drawn uniformly over the disc,
+    so averaging the indicator over the equal-probability quantiles of v gives
+    that fraction, and each quantile costs one more sorted search. Returned in
+    units of the solar radius; heights are symmetric about zero, and n = 1
+    gives back the old point-Sun model exactly.
+    """
+    # CDF of a point's height over a unit disc: F(v) = 1 - (acos v - v*sqrt(1-v^2))/pi
+    q = (np.arange(n) + 0.5) / n
+    v = np.linspace(-1, 1, 200001)
+    cdf = 1 - (np.arccos(v) - v * np.sqrt(np.maximum(1 - v * v, 0))) / np.pi
+    return np.interp(q, cdf, v)
+
+
 def lit_fraction(hor: np.ndarray, lat: np.ndarray, lon: np.ndarray,
-                 step_hours: float = 1.0) -> np.ndarray:
-    """Fraction of a year each pixel sees the centre of the Sun above its horizon."""
+                 step_hours: float = 1.0, disc: int = 7,
+                 days: float = NODAL_CYCLE) -> np.ndarray:
+    """Mean fraction of the Sun's disc visible from each pixel over `days`.
+
+    This is the quantity that matters for a solar array: the share of full
+    sunlight it would collect, averaged over the year. `disc=1` reduces to the
+    older, harsher definition, the fraction of the time the Sun's *centre*
+    clears the horizon. Lengthening `days` costs almost nothing: the work is
+    one sorted search per pixel per direction per disc slice, and more time
+    samples only make the sorted array longer.
+    """
     n_az = hor.shape[0]
-    elev, az = sun_track(step_hours=step_hours)
+    elev, az = sun_track(days=days, step_hours=step_hours)
     bins = np.round(az / (2 * np.pi) * n_az).astype(int) % n_az
+    levels = disc_levels(disc) * np.radians(SOLAR_RADIUS_DEG)
     total = np.zeros(hor.shape[1:], np.float32)
     for i in range(n_az):
         here = np.sort(elev[bins == i])
         if not len(here):
             continue
         # Lit when the Sun's elevation at the pole clears the horizon less the
-        # tilt of this pixel's own horizontal plane. Count with one search.
+        # tilt of this pixel's own horizontal plane. Count with one search per
+        # slice of the disc, then average the slices.
         need = hor[i] - local_offset(lat, lon, 2 * np.pi * i / n_az)
-        total += len(here) - np.searchsorted(here, need.ravel(), "right").reshape(need.shape)
+        for v in levels:
+            edge = (need + v).ravel()
+            total += (len(here) - np.searchsorted(here, edge, "right").reshape(need.shape)) / len(levels)
     return total / len(elev)
 
 

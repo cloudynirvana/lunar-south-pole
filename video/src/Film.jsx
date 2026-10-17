@@ -122,7 +122,7 @@ const Skyline = ({d}) => {
       })}
       <circle cx={cx} cy={cy} r="7" fill={C.sun} />
       <text x={cx} y={cy + 400} fill={C.dim} fontSize="24" fontFamily={font} textAnchor="middle">
-        60 directions, out to 100 km, from every patch of ground
+        {data.azimuths} directions, out to {data.horizon_km} km, from every patch of ground
       </text>
       {/* the profile, with the Moon's curvature falling away underneath */}
       <path d={prof.map((v, i) => {
@@ -135,11 +135,11 @@ const Skyline = ({d}) => {
       <text x={PX0} y={PY - 42} fill={C.sun} fontSize="21" fontFamily={font}>a sunbeam, 1.5° up</text>
       <g opacity={drop}>
         <line x1={PX1} y1={PY} x2={PX1} y2={PY + 120} stroke={C.ice} strokeWidth="2" />
-        <text x={PX1 - 14} y={PY + 76} fill={C.ice} fontSize="22" fontFamily={font} textAnchor="end">2.9 km</text>
+        <text x={PX1 - 14} y={PY + 76} fill={C.ice} fontSize="22" fontFamily={font} textAnchor="end">{data.curvature_km} km</text>
         <text x={PX1 - 14} y={PY + 104} fill={C.dim} fontSize="20" fontFamily={font} textAnchor="end">of curvature</text>
       </g>
       <text x={PX0} y={PY + 160} fill={C.dim} fontSize="22" fontFamily={font}>
-        over 100 km the Moon curves away further than the hills rise
+        over {data.horizon_km} km the Moon curves away further than the hills rise
       </text>
     </svg>
   </AbsoluteFill>;
@@ -149,12 +149,12 @@ const Skyline = ({d}) => {
 const Sunlight = ({d}) => {
   const f = useCurrentFrame();
   const reveal = interpolate(f, [25, 150], [0, 1], {...clamp, easing: ease});
-  const hours = Math.round(interpolate(f, [25, 200], [0, 8766], {...clamp, easing: ease}));
+  const hours = Math.round(interpolate(f, [25, 200], [0, data.hours_computed], {...clamp, easing: ease}));
   return <AbsoluteFill style={{opacity: fade(f, d)}}>
     <MapImage src="sunlight.png" style={{clipPath: `inset(${(1 - reveal) * 100}% 0 0 0)`}} />
     <svg width="1920" height="1080" style={{position: 'absolute'}}><Pole /><Scale /></svg>
     <div style={{position: 'absolute', top: 150, left: 130, width: 520}}>
-      <Rise><H1 size={52}>A year of sunlight, one hour at a time.</H1></Rise>
+      <Rise><H1 size={52}>{data.cycle_years} years of sunlight, one hour at a time.</H1></Rise>
       <div style={{height: 24}} />
       <Rise delay={18}><Sub size={30}>{data.mapped_km2.toLocaleString('en-US')} km² within {data.study_km} km of the pole,
         from NASA's LOLA 40 m elevation map.</Sub></Rise>
@@ -182,7 +182,7 @@ const Shadow = ({d}) => {
       <div style={{fontFamily: font, fontSize: 104, fontWeight: 800, color: C.ice, letterSpacing: -3}}>
         {km2.toLocaleString('en-US')}
       </div>
-      <Sub size={28}>km² of permanent shadow · about the size of Puerto Rico</Sub>
+      <Sub size={28}>km² of permanent shadow · larger than Delaware</Sub>
       <div style={{height: 40}} />
       <Rise delay={120}><Sub size={30} color={C.ink}>Cold enough that water ice can survive there,
         and it has had billions of years to collect.</Sub></Rise>
@@ -221,7 +221,7 @@ const Scarce = ({d}) => {
       <Sub size={23}>bar length is a log scale: each step of the axis is ten times the area</Sub>
     </div>
     <div style={{position: 'absolute', bottom: 70, left: 300, opacity: interpolate(f, [230, 265], [0, 1], clamp)}}>
-      <H1 size={40} color={C.sun}>The best single patch on the map: {data.best_lit_pct}% of the year.</H1>
+      <H1 size={40} color={C.sun}>The best single patch on the map: {data.best_lit_pct}% of the time.</H1>
     </div>
   </AbsoluteFill>;
 };
@@ -267,7 +267,7 @@ const Sites = ({d}) => {
     <div style={{position: 'absolute', top: 130, left: 130, width: 540}}>
       <Rise><H1 size={52}>The twelve best places to land.</H1></Rise>
       <div style={{height: 20}} />
-      <Rise delay={18}><Sub size={28}>Sunlit over half the year, under 10° of slope, with permanent
+      <Rise delay={18}><Sub size={28}>Sunlit over half the time, under 10° of slope, with permanent
         shadow within driving range.</Sub></Rise>
       <div style={{height: 40}} />
       <div style={{opacity: interpolate(f, [150, 180], [0, 1], clamp)}}>
@@ -333,7 +333,60 @@ const EarthView = ({d}) => {
   </AbsoluteFill>;
 };
 
-// ---------------------------------------------------------------- 9. end card
+// ---------------------------------------------------------------- 9. the caveat
+const Limits = ({d}) => {
+  const f = useCurrentFrame();
+  const rows = data.resolution || [];
+  const best = rows.map((r) => r.best);
+  const hi = best.length ? Math.max(...best) : 100, lo = best.length ? Math.min(...best) : 0;
+  const X0 = 1120, X1 = 1790, Y0 = 440, STEP = 96;
+  const grown = interpolate(f, [55, 195], [0, 1], {...clamp, easing: ease});
+  // the axis starts below the smallest value so the difference is visible; said
+  // so on screen, because a truncated axis that does not admit it is a lie
+  const base = lo - 4;
+  const bar = (v) => 90 + ((v - base) / (hi + 1 - base)) * (X1 - X0 - 90);
+  return <AbsoluteFill style={{opacity: fade(f, d)}}>
+    <div style={{position: 'absolute', top: 150, left: 130, width: 790}}>
+      <Rise><H1 size={54}>One caveat, and it is the interesting one.</H1></Rise>
+      <div style={{height: 26}} />
+      <Rise delay={16}><Sub size={31} color={C.ink}>At half a degree of Sun, a two-metre rock
+        two hundred metres away is enough to put you in shadow.</Sub></Rise>
+      <div style={{height: 30}} />
+      <Rise delay={34}><Sub size={29}>So the answer depends on how sharp the map is. Grinding the
+        same {data.box_km * 2} km box around the pole finer finds <span style={{color: C.sun}}>less</span>
+        {' '}sunlight every time, not more.</Sub></Rise>
+      <div style={{height: 34}} />
+      <div style={{opacity: interpolate(f, [215, 245], [0, 1], clamp)}}>
+        <Sub size={29} color={C.sun}>Every sunlight figure in this film is an upper bound.</Sub>
+      </div>
+    </div>
+    <svg width="1920" height="1080" style={{position: 'absolute'}}>
+      <text x={X0} y={Y0 - 58} fill={C.dim} fontSize="24" fontFamily={font}>
+        best patch in the box, by terrain grid
+      </text>
+      {rows.map((r, i) => {
+        const y = Y0 + i * STEP;
+        const w = bar(r.best) * Math.min(1, Math.max(0, grown * rows.length - i));
+        return <g key={i}>
+          <text x={X0 - 16} y={y + 10} fill={C.ink} fontSize="27" fontFamily={mono}
+            textAnchor="end">{r.grid}</text>
+          <rect x={X0} y={y - 22} width={w} height={34} rx="3"
+            fill={i === 0 ? C.sun : C.ice} opacity={i === 0 ? 0.85 : 0.52 - i * 0.07} />
+          <text x={X0 + w + 18} y={y + 10} fill={i === 0 ? C.sun : C.ice} fontSize="27"
+            fontFamily={mono} opacity={w > 60 ? 1 : 0}>{r.best.toFixed(1)}%</text>
+        </g>;
+      })}
+      <text x={X0 - 94} y={Y0 + rows.length * STEP + 26} fill={C.dim} fontSize="22" fontFamily={font}>
+        the finest map NASA publishes here is 40 m per pixel
+      </text>
+      <text x={X0 - 94} y={Y0 + rows.length * STEP + 58} fill={C.dim} fontSize="20" fontFamily={font}>
+        bars start at {base.toFixed(0)}%, not zero
+      </text>
+    </svg>
+  </AbsoluteFill>;
+};
+
+// ---------------------------------------------------------------- 10. end card
 const End = ({d}) => {
   const f = useCurrentFrame();
   return <AbsoluteFill style={{opacity: fade(f, d), alignItems: 'center', justifyContent: 'center'}}>
@@ -360,8 +413,12 @@ const End = ({d}) => {
 };
 
 // ----------------------------------------------------------------
-const SCENES = [[Hook, 270], [Skyline, 585], [Sunlight, 390], [Shadow, 420], [Scarce, 435],
-                [Ratio, 300], [Sites, 480], [EarthView, 375], [End, 285]];
+// Each scene is long enough for its narration line plus a beat at either end;
+// keep in step with VO_START and SCENE_EDGE in soundtrack.py.
+const SCENES = [[Hook, 270], [Skyline, 585], [Sunlight, 420], [Shadow, 420], [Scarce, 435],
+                [Ratio, 300], [Sites, 495], [EarthView, 375], [Limits, 565], [End, 285]];
+
+export const TOTAL = SCENES.reduce((a, [, d]) => a + d, 0);
 
 export const Film = () => {
   let at = 0;

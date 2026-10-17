@@ -9,15 +9,15 @@ from pathlib import Path
 
 import numpy as np
 
-SR, DUR = 44100, 118.0
+SR, DUR = 44100, 138.4
 t = np.arange(int(SR * DUR)) / SR
 L, R = np.zeros_like(t), np.zeros_like(t)
 rng = np.random.default_rng(19)
 note = lambda m: 440 * 2 ** ((m - 69) / 12)
 
 # One line per scene; keep in step with SCENES in src/Film.jsx.
-VO_START = [1.2, 10.2, 29.7, 42.7, 56.7, 71.2, 81.2, 97.2, 109.7]
-SCENE_EDGE = [9, 28.5, 41.5, 55.5, 70, 80, 96, 108.5]
+VO_START = [1.2, 10.2, 29.7, 43.7, 57.7, 72.2, 82.2, 98.7, 111.2, 130.03]
+SCENE_EDGE = [9, 28.5, 42.5, 56.5, 71, 81, 97.5, 110, 128.83]
 
 
 def env(start, attack, decay):
@@ -31,7 +31,7 @@ def lowpass(x, k):
 
 # A cold, wide pad. Suspended chords, so nothing resolves: Asus2 - Fmaj7 - Csus2 - Gsus4.
 chords = [[45, 52, 59, 64], [41, 48, 55, 60], [48, 55, 62, 67], [43, 50, 57, 62]]
-for i in range(9):
+for i in range(11):
     s, e = i * 14.0, i * 14.0 + 16.0
     w = np.clip((t - s) / 4.0, 0, 1) * np.clip((e - t) / 4.0, 0, 1)
     for m in chords[i % 4]:
@@ -77,6 +77,13 @@ for i in range(12):
     ping = 0.11 * env(b, 0.003, 0.7) * np.sin(2 * np.pi * note(72 + (i % 4) * 5) * t)
     L += ping * (0.5 + 0.5 * (i % 2))
     R += ping * (1.0 - 0.5 * (i % 2))
+
+# The caveat scene: four tones, each lower than the last, one per terrain grid.
+for i, b in enumerate(np.arange(113.0, 126.0, 3.1)):
+    m = [69, 64, 60, 55][i % 4]
+    tone = 0.1 * env(b, 0.01, 1.3) * np.sin(2 * np.pi * note(m) * t)
+    L += tone
+    R += 0.9 * tone
 
 # A whoosh into each new scene.
 air = lowpass(rng.standard_normal(len(t)), 44)
